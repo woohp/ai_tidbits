@@ -1,37 +1,47 @@
 import heapq
 import itertools
 
+_REMOVED = '<removed>'
+
 class PriorityQueue(object):
     def __init__(self):
         self.data = []
+        self.entry_finder = {}
         self.counter = itertools.count()
 
-    def push(self, obj, priority):
+    def update(self, obj, priority):
+        if obj in self.entry_finder:
+            self.entry_finder[obj][-1] = _REMOVED
         count = next(self.counter)
-        heapq.heappush(self.data, (priority, count, obj))
+        entry = [priority, count, obj]
+        heapq.heappush(self.data, entry)
+        self.entry_finder[obj] = entry
 
     def peek(self):
-        return self.data[0][2]
+        while self.data[0][-1] is _REMOVED:
+            heapq.heappop(self.data)
+        return self.data[0][-1]
 
     def peek_priority(self):
+        while self.data[0][-1] is _REMOVED:
+            heapq.heappop(self.data)
         return self.data[0][0]
 
     def pop(self):
-        entry = heapq.heappop(self.data)
-        return (entry[2], entry[0])
+        while self.data[0][-1] is _REMOVED:
+            heapq.heappop(self.data)
+        priority, count, obj = heapq.heappop(self.data)
+        del self.entry_finder[obj]
+        return (obj, priority)
 
     def remove(self, obj):
-        for i in xrange(len(self.data)):
-            if self.data[i][2] == obj:
-                self.data.remove(self.data[i])
-                return
+        if obj in self.entry_finder:
+            self.entry_finder[obj][-1] = _REMOVED
+            del self.entry_finder[obj]
 
     def __contains__(self, obj):
-        for i in xrange(len(self.data)):
-            if self.data[i][2] == obj:
-                return True
-        return False
+        return obj in self.entry_finder
         
     def __len__(self):
-        return len(self.data)
+        return len(self.entry_finder)
 

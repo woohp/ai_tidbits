@@ -1,6 +1,7 @@
 import sys
-from grid import *
-from priority_queue import *
+sys.path.append('.')
+from utils.grid import *
+from utils.priority_queue import *
 from collections import deque
 from pathing_base import *
 
@@ -16,29 +17,60 @@ class DStarLite(Pathing):
         self.g = Grid(grid.width, grid.height, inf)
         self.rhs = Grid(grid.width, grid.height, inf)
         self.rhs[goal] = 0
-        self.U.push(goal, self._calculate_key(goal))
+        self.U.update(goal, (self._h(start, goal), 0))
+
+    def _update_vertex(self, u):
+        if self.g[u] != self.rhs[u]:
+            self.U.update(u, self._calculate_key(u))
+        elif u in self.U:
+            self.U.remove(u)
 
     def findpath(self):
-        while self.U.peek_priority() < self._calculate_key(self.start) or self.rhs[self.start] != self.g[self.start]:
-            u, kold = self.U.pop()
-            if kold < self._calculate_key(u):
-                self.U.push(u, self._calculate_key(u))
+        while self.U.peek_priority() < self._calculate_key(self.start) or self.rhs[self.start] > self.g[self.start]:
+            u = self.U.peek()
+            kold = self.U.peek_priority()
+            knew = self._calculate_key(u)
+            if kold < knew:
+                self.U.update(u, knew)
             elif self.g[u] > self.rhs[u]:
                 self.g[u] = self.rhs[u]
-                for pred in self._successors(u):
-                    self.update(pred)
+                self.U.remove(u)
+                for s in self._successors(u):
+                    if s != self.goal: self.rhs[s] = min(self.rhs[s], self._c(s, u) + self.g[u])
+                    self._update_vertex(s)
             else:
+                self.U.update(u, knew)
+                gold = self.g[u]
                 self.g[u] = inf
-                self.update(u)
-                for pred in self._successors(u):
-                    self.update(pred)
+                for s in self._successors(u) + [u]:
+                    if self.rhs[s] == self._c(s, u) + gold:
+                        if s != self.goal: self.rhs[s] = min((self._c(s, sp) + self.g[sp] for sp in self._successors(s)))
+                    self._update_vertex(s)
 
-    def update(self, u):
-        if u != self.goal:
-            self.rhs[u] = min((self._c(u, s) + self.g[s] for s in self._successors(u)))
-        self.U.remove(u)
-        if self.g[u] != self.rhs[u]:
-            self.U.push(u, self._calculate_key(u))
+    def update(self, changes):
+        considered = set()
+        for u in changes.keys():
+            for v in self._successors(u):
+                if (u, v) in considered: continue
+                considered.add((u, v))
+                considered.add((v, u))
+                if v in changes:
+                    cold = min(changes[u], changes[v])
+                else:
+                    cold = min(changes[u], self.g[v])
+
+                if cold > self._c(u, v):
+                    if u != self.goal: self.rhs[u] = min(self.rhs[u], self._c(u, v) + self.g[v])
+                elif self.rhs[u] == cold + self.g[v]:
+                    if u != self.goal: self.rhs[u] = min((self._c(u, s) + self.g[s] for s in self._successors(u)))
+                if cold > self._c(u, v):
+                    if v != self.goal: self.rhs[v] = min(self.rhs[v], self._c(u, v) + self.g[u])
+                elif self.rhs[v] == cold + self.g[u]:
+                    if v != self.goal: self.rhs[v] = min((self._c(v, s) + self.g[s] for s in self._successors(v)))
+
+                self._update_vertex(u)
+                self._update_vertex(v)
+
 
     def current_move(self):
         return self.start
@@ -75,9 +107,13 @@ if __name__ == '__main__':
     print 'path:', pather.next_move()
     print 'path:', pather.next_move()
     grid[5, 1] = 50
-    pather.update((5, 1))
     grid[5, 2] = 50
-    pather.update((5, 2))
+    grid[5, 3] = 50
+    pather.update({(5, 1): 10, (5, 2): 10, (5, 3): 10})
+    pather.findpath()
+    print 'path:', pather.next_move()
+    grid[5, 2] = 20
+    pather.update({(5, 2): 50})
     pather.findpath()
     while pather.current_move() != (8, 3):
         print 'path:', pather.next_move()
