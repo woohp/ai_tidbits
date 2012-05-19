@@ -6,8 +6,6 @@ from collections import deque
 from pathing_base import *
 import unittest
 
-inf = float('inf')
-
 class DStarLite(Pathing):
     def __init__(self, grid, start, goal):
         self.grid = grid

@@ -5,7 +5,6 @@ from utils.priority_queue import *
 from collections import deque
 from pathing_base import *
 
-
 class Node(object):
     def __init__(self, x, y, g, h, parent):
         self.x = x
@@ -32,7 +31,6 @@ class AStar(Pathing):
 
         while len(fringe) > 0:
             node, f = fringe.pop()
-            print node.loc
             
             if history[node.loc] < inf: continue
             if node.loc == self.goal:

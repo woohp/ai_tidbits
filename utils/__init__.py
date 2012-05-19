@@ -1,4 +1,4 @@
-from itertools import *
+inf = float('inf')
 
 def argmax(col, valFunc, condFunc=None):
     if condFunc == None:
