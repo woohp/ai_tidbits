@@ -10,7 +10,8 @@ class PriorityQueue(object):
         self.entry_finder = {}
         self.counter = itertools.count()
 
-    def update(self, obj, priority):
+    def update(self, obj, priority=None):
+        if priority == None: priority = obj
         if obj in self.entry_finder:
             self.entry_finder[obj][-1] = _REMOVED
         count = next(self.counter)

@@ -103,132 +103,134 @@ class DStarLite(Pathing):
                 min(self.g[s], self.rhs[s]))
 
 
-if __name__ == '__main__':
-    class DStarLiteTest(unittest.TestCase):
-        def setUp(self):
-            self.grid = Grid(10, 10, 10)
+class DStarLiteTest(unittest.TestCase):
+    def setUp(self):
+        self.grid = Grid(10, 10, 10)
 
-        def check_valid_path(self, start, goal, path):
-            self.assertEqual(path[0], start)
-            self.assertEqual(path[-1], goal)
-            prev_x, prev_y = path[0]
-            for x, y in path[1:]:
-                self.assertEqual(abs(x-prev_x) + abs(y-prev_y), 1)
-                prev_x = x
-                prev_y = y
+    def check_valid_path(self, start, goal, path):
+        self.assertEqual(path[0], start)
+        self.assertEqual(path[-1], goal)
+        prev_x, prev_y = path[0]
+        for x, y in path[1:]:
+            self.assertEqual(abs(x-prev_x) + abs(y-prev_y), 1)
+            prev_x = x
+            prev_y = y
 
-        def test_basic(self):
-            pather = DStarLite(self.grid, (1, 1), (8, 3))
-            pather.findpath()
-            path = [pather.current_move()]
-            while pather.current_move() != (8, 3):
-                path.append(pather.next_move())
+    def test_basic(self):
+        pather = DStarLite(self.grid, (1, 1), (8, 3))
+        pather.findpath()
+        path = [pather.current_move()]
+        while pather.current_move() != (8, 3):
+            path.append(pather.next_move())
+        self.assertEqual(len(path), 10)
+        self.check_valid_path((1, 1), (8, 3), path)
+
+    def test_map_change_simple(self):
+        pather = DStarLite(self.grid, (1, 1), (8, 3))
+        pather.findpath()
+        self.grid[4, 1] = 40
+        self.grid[4, 3] = 40
+        pather.update({(4, 1): 10, (4, 3): 10})
+        path = [pather.current_move()]
+        while pather.current_move() != (8, 3):
+            path.append(pather.next_move())
+        self.assertEqual(len(path), 10)
+        self.assertIn((4, 2), path)
+        self.check_valid_path((1, 1), (8, 3), path)
+
+    def test_map_change_simple2(self):
+        pather = DStarLite(self.grid, (1, 1), (8, 3))
+        pather.findpath()
+        self.grid[4, 1] = 40
+        self.grid[4, 2] = 40
+        self.grid[4, 3] = 40
+        pather.update({(4, 1): 10, (4, 2): 10, (4, 3): 10})
+        path = [pather.current_move()]
+        while pather.current_move() != (8, 3):
+            path.append(pather.next_move())
+        self.assertEqual(len(path), 12)
+        self.assertTrue((4, 4) in path or (4, 0) in path)
+        self.check_valid_path((1, 1), (8, 3), path)
+
+    def test_map_change_in_middle(self):
+        pather = DStarLite(self.grid, (1, 1), (8, 3))
+        pather.findpath()
+        path = [pather.current_move()]
+        path.append(pather.next_move())
+        path.append(pather.next_move())
+        self.grid[4, 1] = 40
+        self.grid[4, 2] = 40
+        self.grid[4, 3] = 40
+        pather.update({(4, 1): 10, (4, 2): 10, (4, 3): 10})
+        while pather.current_move() != (8, 3):
+            path.append(pather.next_move())
+        self.assertEqual(len(path), 12)
+        self.assertTrue((4, 4) in path or (4, 0) in path)
+        self.check_valid_path((1, 1), (8, 3), path)
+
+    def test_map_changes_twice(self):
+        pather = DStarLite(self.grid, (1, 1), (8, 3))
+        pather.findpath()
+        path = [pather.current_move()]
+        path.append(pather.next_move())
+        path.append(pather.next_move())
+        self.grid[7, 1] = 40
+        self.grid[7, 2] = 40
+        self.grid[7, 3] = 40
+        pather.update({(7, 1): 10, (7, 2): 10, (7, 3): 10})
+        path.append(pather.next_move())
+        path.append(pather.next_move())
+        path.append(pather.next_move())
+        self.grid[7, 2] == 20
+        pather.update({(7, 2): 40})
+        while pather.current_move() != (8, 3):
+            path.append(pather.next_move())
+        self.assertEqual(len(path), 10)
+        self.check_valid_path((1, 1), (8, 3), path)
+
+    def test_map_changes_not_move_back(self):
+        pather = DStarLite(self.grid, (1, 1), (8, 3))
+        pather.findpath()
+        path = [pather.current_move()]
+        for i in xrange(6):
+            path.append(pather.next_move())
+        location_at_change = pather.current_move()
+        self.grid[8, 2] = 50
+        self.grid[8, 1] = 50
+        self.grid[8, 0] = 50
+        self.grid[7, 3] = 50
+        self.grid[6, 3] = 50
+        self.grid[5, 3] = 50
+        self.grid[4, 3] = 50
+        self.grid[3, 3] = 50
+        pather.update({(8, 2): 10, (8, 1): 10, (8, 0): 10, (7, 3): 10, (6, 3): 10, (5, 3): 10, (4, 3): 10, (3, 3): 10})
+        while pather.current_move() != (8, 3):
+            path.append(pather.next_move())
+        if location_at_change[1] < 3:
             self.assertEqual(len(path), 10)
-            self.check_valid_path((1, 1), (8, 3), path)
-
-        def test_map_change_simple(self):
-            pather = DStarLite(self.grid, (1, 1), (8, 3))
-            pather.findpath()
-            self.grid[4, 1] = 40
-            self.grid[4, 3] = 40
-            pather.update({(4, 1): 10, (4, 3): 10})
-            path = [pather.current_move()]
-            while pather.current_move() != (8, 3):
-                path.append(pather.next_move())
-            self.assertEqual(len(path), 10)
-            self.assertIn((4, 2), path)
-            self.check_valid_path((1, 1), (8, 3), path)
-
-        def test_map_change_simple2(self):
-            pather = DStarLite(self.grid, (1, 1), (8, 3))
-            pather.findpath()
-            self.grid[4, 1] = 40
-            self.grid[4, 2] = 40
-            self.grid[4, 3] = 40
-            pather.update({(4, 1): 10, (4, 2): 10, (4, 3): 10})
-            path = [pather.current_move()]
-            while pather.current_move() != (8, 3):
-                path.append(pather.next_move())
+        elif location_at_change[1] == 3:
             self.assertEqual(len(path), 12)
-            self.assertTrue((4, 4) in path or (4, 0) in path)
-            self.check_valid_path((1, 1), (8, 3), path)
+        self.check_valid_path((1, 1), (8, 3), path)
 
-        def test_map_change_in_middle(self):
-            pather = DStarLite(self.grid, (1, 1), (8, 3))
-            pather.findpath()
-            path = [pather.current_move()]
+    def test_map_changes_move_back(self):
+        pather = DStarLite(self.grid, (1, 1), (8, 3))
+        pather.findpath()
+        path = [pather.current_move()]
+        for i in xrange(6):
             path.append(pather.next_move())
+        location_at_change = pather.current_move()
+        self.grid[8, 2] = 500
+        self.grid[8, 1] = 500
+        self.grid[8, 0] = 500
+        self.grid[7, 3] = 500
+        self.grid[6, 3] = 500
+        self.grid[5, 3] = 500
+        self.grid[4, 3] = 500
+        self.grid[3, 3] = 500
+        self.grid[5, 4] = 500
+        pather.update({(8, 2): 10, (8, 1): 10, (8, 0): 10, (7, 3): 10, (6, 3): 10, (5, 3): 10, (4, 3): 10, (3, 3): 10, (5, 4): 10})
+        while pather.current_move() != (8, 3):
             path.append(pather.next_move())
-            self.grid[4, 1] = 40
-            self.grid[4, 2] = 40
-            self.grid[4, 3] = 40
-            pather.update({(4, 1): 10, (4, 2): 10, (4, 3): 10})
-            while pather.current_move() != (8, 3):
-                path.append(pather.next_move())
-            self.assertEqual(len(path), 12)
-            self.assertTrue((4, 4) in path or (4, 0) in path)
-            self.check_valid_path((1, 1), (8, 3), path)
-
-        def test_map_changes_twice(self):
-            pather = DStarLite(self.grid, (1, 1), (8, 3))
-            pather.findpath()
-            path = [pather.current_move()]
-            path.append(pather.next_move())
-            path.append(pather.next_move())
-            self.grid[7, 1] = 40
-            self.grid[7, 2] = 40
-            self.grid[7, 3] = 40
-            pather.update({(7, 1): 10, (7, 2): 10, (7, 3): 10})
-            path.append(pather.next_move())
-            path.append(pather.next_move())
-            path.append(pather.next_move())
-            self.grid[7, 2] == 20
-            pather.update({(7, 2): 40})
-            while pather.current_move() != (8, 3):
-                path.append(pather.next_move())
-            self.assertEqual(len(path), 10)
-            self.check_valid_path((1, 1), (8, 3), path)
-
-        def test_map_changes_not_move_back(self):
-            pather = DStarLite(self.grid, (1, 1), (8, 3))
-            pather.findpath()
-            path = [pather.current_move()]
-            for i in xrange(6):
-                path.append(pather.next_move())
-            self.grid[8, 2] = 50
-            self.grid[8, 1] = 50
-            self.grid[8, 0] = 50
-            self.grid[7, 3] = 50
-            self.grid[6, 3] = 50
-            self.grid[5, 3] = 50
-            self.grid[4, 3] = 50
-            self.grid[3, 3] = 50
-            pather.update({(8, 2): 10, (8, 1): 10, (8, 0): 10, (7, 3): 10, (6, 3): 10, (5, 3): 10, (4, 3): 10, (3, 3): 10})
-            while pather.current_move() != (8, 3):
-                path.append(pather.next_move())
-            self.assertEqual(len(path), 10)
-            self.check_valid_path((1, 1), (8, 3), path)
-
-        def test_map_changes_move_back(self):
-            pather = DStarLite(self.grid, (1, 1), (8, 3))
-            pather.findpath()
-            path = [pather.current_move()]
-            for i in xrange(6):
-                path.append(pather.next_move())
-            self.grid[8, 2] = 500
-            self.grid[8, 1] = 500
-            self.grid[8, 0] = 500
-            self.grid[7, 3] = 500
-            self.grid[6, 3] = 500
-            self.grid[5, 3] = 500
-            self.grid[4, 3] = 500
-            self.grid[3, 3] = 500
-            pather.update({(8, 2): 10, (8, 1): 10, (8, 0): 10, (7, 3): 10, (6, 3): 10, (5, 3): 10, (4, 3): 10, (3, 3): 10})
-            while pather.current_move() != (8, 3):
-                path.append(pather.next_move())
-            self.assertEqual(len(path), 22)
-            self.check_valid_path((1, 1), (8, 3), path)
-
-
-    unittest.main()
+        self.assertEqual(len(path), 22)
+        self.check_valid_path((1, 1), (8, 3), path)
 

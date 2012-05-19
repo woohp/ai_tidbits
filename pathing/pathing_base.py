@@ -1,12 +1,5 @@
 
-def Node(object):
-    def __init__(self, x, y, g):
-        self.x = x
-        self.y = y
-        self.g = g
-
-    def make_successor(self, dx, dy):
-        return Node(self.x + dx, self.y + dy, self.g + 10)
+inf = float('inf')
 
 class Pathing(object):
     def __init__(self):
@@ -22,16 +15,16 @@ class Pathing(object):
         pass
 
     def _successors(self, s):
-        y, x = s
+        x, y = s
         successors = []
-        if self.grid.is_valid(y-1, x):
-            successors.append((y-1, x))
-        if self.grid.is_valid(y+1, x):
-            successors.append((y+1, x))
-        if self.grid.is_valid(y, x-1):
-            successors.append((y, x-1))
-        if self.grid.is_valid(y, x+1):
-            successors.append((y, x+1))
+        if self.grid.is_valid(x, y-1):
+            successors.append((x, y-1))
+        if self.grid.is_valid(x, y+1):
+            successors.append((x, y+1))
+        if self.grid.is_valid(x-1, y):
+            successors.append((x-1, y))
+        if self.grid.is_valid(x+1, y):
+            successors.append((x+1, y))
         return successors
 
 
