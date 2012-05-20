@@ -22,7 +22,7 @@ class AStar(Pathing):
         self.goal = goal
 
     def findpath(self):
-        history = Grid(self.grid.width, self.grid.height, inf)
+        history = Grid(self.grid.width, self.grid.height, False)
         fringe_score = Grid(self.grid.width, self.grid.height, inf)
         fringe = PriorityQueue()
         start_node = Node(self.start[0], self.start[1],
@@ -32,7 +32,9 @@ class AStar(Pathing):
         while len(fringe) > 0:
             node, f = fringe.pop()
             
-            if history[node.loc] < inf: continue
+            if history[node.loc]: continue
+            history[node.loc] = True
+
             if node.loc == self.goal:
                 self.path = deque()
                 while node != None:
@@ -45,7 +47,7 @@ class AStar(Pathing):
                 cost = self._c(node.loc, suc)
                 h = self._h(suc, self.goal)
                 nd = Node(x, y, cost, h, node)
-                if nd.f < fringe_score[nd.loc]:
+                if nd.f < fringe_score[nd.loc] and not history[nd.loc]:
                     fringe.update(nd, nd.f)
                     fringe_score[nd.loc] = nd.f
 
@@ -114,6 +116,13 @@ class AStarTest(unittest.TestCase):
         self.grid[0, 1] = inf
         self.grid[1, 1] = inf
         pather = AStar(self.grid, (0, 0), (2, 2))
+        success = pather.findpath()
+        self.assertFalse(success)
+
+    def test_failure2(self):
+        grid = Grid(10, 1, 10)
+        grid[2, 0] = inf
+        pather = AStar(grid, (0, 0), (9, 0))
         success = pather.findpath()
         self.assertFalse(success)
 
