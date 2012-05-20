@@ -105,12 +105,14 @@ class DStarLiteTest(unittest.TestCase):
     def setUp(self):
         self.grid = Grid(10, 10, 10)
 
-    def check_valid_path(self, start, goal, path):
+    def check_valid_path(self, start, goal, path, grid=None):
+        if grid == None: grid = self.grid
         self.assertEqual(path[0], start)
         self.assertEqual(path[-1], goal)
         prev_x, prev_y = path[0]
         for x, y in path[1:]:
             self.assertEqual(abs(x-prev_x) + abs(y-prev_y), 1)
+            self.assertNotEqual(grid[x, y], inf)
             prev_x = x
             prev_y = y
 
