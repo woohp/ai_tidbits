@@ -65,27 +65,33 @@ class MAPP(Pathing):
             if not success: return False
 
         self.paths = [[pos] for pos in self.starts]
-        offcourse_paths = self.paths[:]
 
         current_positions = list(self.starts)
         current_positions_map = Grid(self.grid.width, self.grid.height, inf)
         for i, pos in enumerate(self.starts):
             current_positions_map[pos] = i
         prev_positions = [None] * self.num_agents # previous position in the individual paths
-        visited_positions = [set() for i in xrange(self.num_agents)]
+        offcourse_paths = self.paths[:]
         reached_destinations = set()
+
+        def make_move(agent_index, cur_pos, next_pos):
+            current_positions[agent_index] = next_pos
+            current_positions_map[cur_pos] = inf
+            current_positions_map[next_pos] = agent_index
+            self.paths[agent_index].append(next_pos)
 
         while len(reached_destinations) < self.num_agents:
             # do the progression step
             while True:
                 changed = False
-                moved = set()
+                slided = [False] * self.num_agents
                 for i in xrange(len(current_positions)):
+                    # check if agent has reached destination or moved
                     if i in reached_destinations: continue
                     if len(self.individual_paths[i]) == 1:
                         reached_destinations.add(i)
                         continue
-                    if i in moved: continue
+                    if slided[i]: continue
 
                     cur_pos = current_positions[i]
                     next_pos = self.individual_paths[i][1]
@@ -95,12 +101,8 @@ class MAPP(Pathing):
                     elif current_positions_map[next_pos] < i:
                         self.paths[i].append(cur_pos)
                     elif current_positions_map[next_pos] == inf:
-                        current_positions[i] = next_pos
-                        current_positions_map[cur_pos] = inf
-                        current_positions_map[next_pos] = i
-                        visited_positions[i].add(next_pos)
+                        make_move(i, cur_pos, next_pos)
                         prev_positions[i] = cur_pos
-                        self.paths[i].append(next_pos)
                         self.individual_paths[i].popleft()
                         offcourse_paths[i] = [next_pos]
                         changed = True
@@ -109,7 +111,7 @@ class MAPP(Pathing):
                             self.paths[i].append(cur_pos)
                             continue
  
-                        # calculate the private zones of all higher priority agents
+                        # calculate private zones
                         private_zones = set()
                         for j in xrange(i):
                             private_zones.add(current_positions[j])
@@ -123,11 +125,13 @@ class MAPP(Pathing):
                             if current_positions_map[l] == inf:
                                 can_bring_blank = True
                                 break
-                            elif current_positions_map[l] in moved:
+                            elif slided[current_positions_map[l]]:
                                 break
-                        if not can_bring_blank: continue
+                        if not can_bring_blank:
+                            self.paths[i].append(cur_pos)
+                            continue
 
-                        # bring blank to the next position
+                        # bring blank to the next position by sliding the other blocks along the alt path
                         for k in xrange(j, 0, -1):
                             pos = alt_path[k]
                             next_agent_index = current_positions_map[alt_path[k-1]]
@@ -136,37 +140,37 @@ class MAPP(Pathing):
                             current_positions_map[pos] = next_agent_index
                             self.paths[next_agent_index].append(pos)
                             offcourse_paths[next_agent_index].append(pos)
-                            moved.add(next_agent_index)
+                            slided[next_agent_index] = True
 
                         # move current agent over there
-                        current_positions[i] = next_pos
-                        current_positions_map[cur_pos] = inf
-                        current_positions_map[next_pos] = i
-                        visited_positions[i].add(next_pos)
+                        make_move(i, cur_pos, next_pos)
                         prev_positions[i] = cur_pos
-                        self.paths[i].append(next_pos)
                         self.individual_paths[i].popleft()
                         offcourse_paths[i] = [next_pos]
                         changed = True
 
                 if not changed: break
 
+
             # do the reposition step
-            for i in xrange(self.num_agents-1, -1, -1):
-                if i in reached_destinations: continue
-                elif current_positions[i] in self.individual_paths[i]:
-                    self.paths[i].append(self.paths[i][-1])
-                else:
+            while True:
+                changed = False
+                for i in xrange(self.num_agents-1, -1, -1):
+                    if i in reached_destinations: continue
+
                     cur_pos = current_positions[i]
-                    next_pos = offcourse_paths[i][-2]
-                    if current_positions_map[next_pos] == inf:
-                        current_positions[i] = next_pos
-                        current_positions_map[cur_pos] = inf
-                        current_positions_map[next_pos] = i
-                        self.paths[i].append(next_pos)
-                        offcourse_paths[i].pop()
-                    else:
+                    if len(offcourse_paths[i]) == 1:
                         self.paths[i].append(cur_pos)
+                    else:
+                        next_pos = offcourse_paths[i][-2]
+                        if current_positions_map[next_pos] == inf:
+                            make_move(i, cur_pos, next_pos)
+                            offcourse_paths[i].pop()
+                            changed = True
+                        else:
+                            self.paths[i].append(cur_pos)
+
+                if not changed: break;
 
         return True
 
@@ -198,10 +202,7 @@ class MAPP(Pathing):
 
 
 class MAPPTest(unittest.TestCase):
-    def setUp(self):
-        self.grid = Grid(10, 10, 10)
-
-    def check_valid_path(self, starts, goals, paths, grid=None):
+    def check_valid_path(self, starts, goals, paths, grid):
         # check that each path actually goes from start to goal
         if grid == None: grid = self.grid
         for start, goal, path in zip(starts, goals, paths):
@@ -237,18 +238,45 @@ class MAPPTest(unittest.TestCase):
         self.assertFalse(success) 
 
     def test_basic(self):
+        grid = Grid(10, 10, 10)
         starts = ((0, 0), (5, 0))
         goals = ((0, 5), (5, 5))
-        pather = MAPP(self.grid, starts, goals)
+        pather = MAPP(grid, starts, goals)
         success = pather.findpath()
         self.assertTrue(success)
-        self.check_valid_path(starts, goals, pather.paths)
+        self.check_valid_path(starts, goals, pather.paths, grid)
 
     def test_simple_collision(self):
+        grid = Grid(10, 10, 10)
         starts = ((0, 5), (9, 5))
         goals = ((9, 5), (0, 5))
-        pather = MAPP(self.grid, starts, goals)
+        pather = MAPP(grid, starts, goals)
         success = pather.findpath()
         self.assertTrue(success)
-        self.check_valid_path(starts, goals, pather.paths)
+        self.check_valid_path(starts, goals, pather.paths, grid)
+    
+    def test_complex1(self):
+        grid = Grid(5, 5, 10)
+        starts = ((2, 0), (0, 2), (4, 2))
+        goals = ((2, 4), (4, 2), (0, 2))
+        pather = MAPP(grid, starts, goals)
+        success = pather.findpath()
+        self.assertTrue(success)
+        self.check_valid_path(starts, goals, pather.paths, grid)
         
+    def test_complex2(self):
+        grid = Grid(9, 9, 9)
+        for i in xrange(9):
+            if i == 4 or i == 5: continue
+            grid[2, i] = inf
+            grid[6, i] = inf
+        for i in xrange(2, 7):
+            grid[i, 3] = inf
+            grid[i, 6] = inf
+        starts = ((0, 0), (0, 8), (8, 0), (8, 8))
+        goals = ((8, 8), (8, 0), (0, 8), (0, 0))
+        pather = MAPP(grid, starts, goals)
+        success = pather.findpath()
+        self.assertTrue(success)
+        self.check_valid_path(starts, goals, pather.paths, grid)
+
