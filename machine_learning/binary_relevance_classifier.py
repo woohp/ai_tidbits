@@ -12,12 +12,12 @@ class BinaryRelevanceClassifier(BaseEstimator, ClassifierMixin):
         self.bl = LabelBinarizer()
         Y = self.bl.fit_transform(Y)
         self.classes_ = self.bl.classes_
- 
+
         # create an estimator for each label
         self.estimators_ = []
         for i in xrange(self.bl.classes_.shape[0]):
             estimator = clone(self.estimator)
-            estimator.fit(X, Y[:,i])
+            estimator.fit(X, Y[i])
             self.estimators_.append(estimator)
 
     def predict(self, X):
@@ -26,7 +26,9 @@ class BinaryRelevanceClassifier(BaseEstimator, ClassifierMixin):
         X = np.atleast_2d(X)
         Y = np.empty((X.shape[0], self.classes_.shape[0]))
         for i, estimator in enumerate(self.estimators_):
-            Y[:,i] = estimator.predict(X)
+            print estimator.predict(X).shape
+            print Y[i].shape
+            Y[i] = estimator.predict(X).T
 
         return self.bl.inverse_transform(Y)
 
@@ -40,10 +42,13 @@ class BinaryRelevanceClassifierTest(unittest.TestCase):
         from sklearn.svm import SVC
         X = ((1, 1, 0), (0, 1, 1), (1, 0, 1))
         Y = (('foo', 'bar'), ('bar', 'baz'), ('foo', 'baz'))
-        clf = BinaryRelevanceClassifier(SVC())
+        clf = BinaryRelevanceClassifier(SVC(C=10))
         clf.fit(X, Y)
-        predictions = clf.predict((1, 1, 1))
-        self.assertIn('foo', predictions[0])
-        self.assertIn('bar', predictions[0])
-        self.assertIn('baz', predictions[0])
+        predictions = clf.predict(((1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 1)))
+        self.assertEqual(('foo',), predictions[0])
+        self.assertEqual(('bar',), predictions[1])
+        self.assertEqual(('baz',), predictions[2])
+        self.assertIn('foo', predictions[3])
+        self.assertIn('bar', predictions[3])
+        self.assertIn('baz', predictions[3])
 
