@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.signal import convolve2d
+from scipy.ndimage import convolve
 
 def hog(image, window_size, num_bins=9, overlap=True):
     height, width = image.shape
@@ -17,8 +17,8 @@ def hog(image, window_size, num_bins=9, overlap=True):
     # do image convolution
     hx = np.atleast_2d([-1, 0, 1])
     hy = hx.T
-    gx = convolve2d(image, hx, 'same')
-    gy = convolve2d(image, hy, 'same')
+    gx = convolve(image, hx)
+    gy = convolve(image, hy)
 
     # compute the angles and magnitudes
     angles = np.arctan2(gy, gx)
