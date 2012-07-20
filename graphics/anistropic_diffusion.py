@@ -6,8 +6,11 @@ kernel_S = sp.array([[0], [-1], [1]])
 kernel_E = sp.array([[0, -1, 1]])
 kernel_W = sp.array([[1, -1, 0]])
 
-def g(x, kappa):
+def g1(x, kappa):
     return sp.exp(-((x / kappa) ** 2))
+
+def g2(x, kappa):
+    return 1.0 / (1.0 + (x / kappa) ** 2)
 
 def shift(img, dy, dx):
     rows, cols = img.shape
@@ -15,7 +18,9 @@ def shift(img, dy, dx):
     result[max(dy, 0):rows+dy, max(dx, 0):cols+dx] = img[max(-dy, 0):rows-dy, max(-dx, 0):cols-dx]
     return result
 
-def anistropic_diffusion(I, num_iter=15, delta=1.0/8, kappa=10):
+def anistropic_diffusion(I, num_iter=15, delta=1.0/8, kappa=10, option=0):
+    g = g1 if option == 0 else g2
+
     I_t = I.astype(sp.float64)
     for i in xrange(num_iter):
         gradient_N = shift(I_t, 0, 1)
