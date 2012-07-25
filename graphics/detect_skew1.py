@@ -1,7 +1,6 @@
 import scipy as sp
 from scipy.ndimage.interpolation import rotate
 from scipy.misc import imresize
-import cv2
 
 def detect_skew(img, min_angle=-20, max_angle=20, quality='low'):
     rows, cols = img.shape
