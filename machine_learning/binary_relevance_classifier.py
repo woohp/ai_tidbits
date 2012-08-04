@@ -17,7 +17,7 @@ class BinaryRelevanceClassifier(BaseEstimator, ClassifierMixin):
         self.estimators_ = []
         for i in xrange(self.bl.classes_.shape[0]):
             estimator = clone(self.estimator)
-            estimator.fit(X, Y[i])
+            estimator.fit(X, Y[:, i])
             self.estimators_.append(estimator)
 
     def predict(self, X):
@@ -26,9 +26,7 @@ class BinaryRelevanceClassifier(BaseEstimator, ClassifierMixin):
         X = np.atleast_2d(X)
         Y = np.empty((X.shape[0], self.classes_.shape[0]))
         for i, estimator in enumerate(self.estimators_):
-            print estimator.predict(X).shape
-            print Y[i].shape
-            Y[i] = estimator.predict(X).T
+            Y[:, i] = estimator.predict(X).T
 
         return self.bl.inverse_transform(Y)
 
