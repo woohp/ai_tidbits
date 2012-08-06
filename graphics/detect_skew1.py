@@ -3,6 +3,7 @@ from scipy.ndimage.interpolation import rotate
 from scipy.misc import imresize
 
 def detect_skew(img, min_angle=-20, max_angle=20, quality='low'):
+    img = sp.atleast_2d(img)
     rows, cols = img.shape
     min_min_angle = min_angle
     max_max_angle = max_angle
@@ -36,13 +37,13 @@ def detect_skew(img, min_angle=-20, max_angle=20, quality='low'):
 
     # keep dividing the interval in half to achieve O(log(n))
     while True:
-        current_resolution = (max_angle - min_angle) / 4.0
+        current_resolution = (max_angle - min_angle) / 30.0
         best_angle = None
         best_variance = 0.0
 
         # rotate the image, sum the pixel values in each row for each rotation
         # then find the variance of all the sums, pick the highest variance
-        for i in xrange(5):
+        for i in xrange(31):
             angle = min_angle + i * current_resolution
             rotated_img = rotate(img, angle, reshape=False, order=resize_order)
             num_black_pixels = sp.sum(rotated_img, axis=1)
@@ -53,6 +54,7 @@ def detect_skew(img, min_angle=-20, max_angle=20, quality='low'):
 
         if current_resolution < resolution:
             break
+
         # update the angle range
         min_angle = max(best_angle - current_resolution, min_min_angle)
         max_angle = min(best_angle + current_resolution, max_max_angle)
