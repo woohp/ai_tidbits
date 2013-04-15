@@ -9,8 +9,10 @@ class Graph(object):
         self.nodes = defaultdict(lambda: defaultdict(int))
         self.flow = defaultdict(lambda: defaultdict(int))
 
-    def add_edge(self, p, q, weight):
+    def add_edge(self, p, q, weight, undirected=False):
         self.nodes[p][q] = weight
+        if undirected:
+            self.nodes[q][p] = weight
 
     def max_flow(self, source, sink):
         total_flow = 0
